@@ -1,4 +1,3 @@
-#if UNITY_2017_1_OR_NEWER
 using UnityEditor.Experimental.AssetImporters;
 using UnityEditor;
 using System.IO;
@@ -308,7 +307,6 @@ namespace UnityGLTF
                 throw;
             }
 
-#if UNITY_2017_3_OR_NEWER
 			// Set main asset
 			ctx.AddObjectToAsset("main asset", gltfScene);
 
@@ -319,16 +317,6 @@ namespace UnityGLTF
 			}
 
 			ctx.SetMainObject(gltfScene);
-#else
-            // Set main asset
-            ctx.SetMainAsset("main asset", gltfScene);
-
-            // Add meshes
-            foreach (var mesh in meshes)
-            {
-                ctx.AddSubAsset("mesh " + mesh.name, mesh);
-            }
-#endif
         }
 
         private GameObject CreateGLTFScene(string projectFilePath)
@@ -390,4 +378,3 @@ namespace UnityGLTF
         }
     }
 }
-#endif

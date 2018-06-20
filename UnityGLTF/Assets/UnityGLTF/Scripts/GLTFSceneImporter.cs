@@ -1122,9 +1122,8 @@ namespace UnityGLTF
 			// todo optimize: There are multiple copies being performed to turn the buffer data into mesh data. Look into reducing them
 			UnityEngine.Mesh mesh = new UnityEngine.Mesh
 			{
-#if UNITY_2017_3_OR_NEWER
 				indexFormat = vertexCount > 65535 ? IndexFormat.UInt32 : IndexFormat.UInt16,
-#endif
+
 				vertices = primitive.Attributes.ContainsKey(SemanticProperties.POSITION)
 					? meshAttributes[SemanticProperties.POSITION].AccessorContent.AsVertices.ToUnityVector3Raw()
 					: null,
