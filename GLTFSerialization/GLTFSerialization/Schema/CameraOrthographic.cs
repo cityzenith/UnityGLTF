@@ -29,6 +29,18 @@ namespace GLTF.Schema
 		/// </summary>
 		public double ZNear;
 
+		public CameraOrthographic()
+		{
+		}
+
+		public CameraOrthographic(CameraOrthographic cameraOrthographic) : base(cameraOrthographic)
+		{
+			XMag = cameraOrthographic.XMag;
+			YMag = cameraOrthographic.YMag;
+			ZFar = cameraOrthographic.ZFar;
+			ZNear = cameraOrthographic.ZNear;
+		}
+
 		public static CameraOrthographic Deserialize(GLTFRoot root, JsonReader reader)
 		{
 			var cameraOrthographic = new CameraOrthographic();
@@ -72,13 +84,13 @@ namespace GLTF.Schema
 			writer.WritePropertyName("xmag");
 			writer.WriteValue(XMag);
 
-			writer.WritePropertyName("Ymag");
+			writer.WritePropertyName("ymag");
 			writer.WriteValue(YMag);
 
-			writer.WritePropertyName("ZFar");
+			writer.WritePropertyName("zfar");
 			writer.WriteValue(ZFar);
 
-			writer.WritePropertyName("ZNear");
+			writer.WritePropertyName("znear");
 			writer.WriteValue(ZNear);
 
 			base.Serialize(writer);

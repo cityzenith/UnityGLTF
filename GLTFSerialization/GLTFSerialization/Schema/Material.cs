@@ -79,6 +79,45 @@ namespace GLTF.Schema
 		/// </summary>
 		public bool DoubleSided;
 
+		public Material()
+		{
+		}
+
+		public Material(Material material, GLTFRoot gltfRoot) : base(material, gltfRoot)
+		{
+			if (material == null) return;
+
+			if (material.PbrMetallicRoughness != null)
+			{
+				PbrMetallicRoughness = new PbrMetallicRoughness(material.PbrMetallicRoughness, gltfRoot);
+			}
+
+			if (material.CommonConstant != null)
+			{
+				CommonConstant = new MaterialCommonConstant(material.CommonConstant, gltfRoot);
+			}
+
+			if (material.NormalTexture != null)
+			{
+				NormalTexture = new NormalTextureInfo(material.NormalTexture, gltfRoot);
+			}
+
+			if (material.OcclusionTexture != null)
+			{
+				OcclusionTexture = new OcclusionTextureInfo(material.OcclusionTexture, gltfRoot);
+			}
+
+			if (material.EmissiveTexture != null)
+			{
+				EmissiveTexture = new TextureInfo(material.EmissiveTexture, gltfRoot);
+			}
+
+			EmissiveFactor = material.EmissiveFactor;
+			AlphaMode = material.AlphaMode;
+			AlphaCutoff = material.AlphaCutoff;
+			DoubleSided = material.DoubleSided;
+		}
+
 		public static Material Deserialize(GLTFRoot root, JsonReader reader)
 		{
 			var material = new Material();
@@ -125,7 +164,8 @@ namespace GLTF.Schema
 			return material;
 		}
 
-		public override void Serialize(JsonWriter writer) {
+		public override void Serialize(JsonWriter writer)
+		{
 			writer.WriteStartObject();
 
 			if (PbrMetallicRoughness != null)
@@ -180,7 +220,8 @@ namespace GLTF.Schema
 				writer.WriteValue(AlphaCutoff);
 			}
 
-			if (DoubleSided) {
+			if (DoubleSided)
+			{
 				writer.WritePropertyName("doubleSided");
 				writer.WriteValue(true);
 			}

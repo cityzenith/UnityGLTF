@@ -2,7 +2,6 @@ using System;
 
 namespace GLTF
 {
-	[Serializable()]
 	public class GLTFHeaderInvalidException : Exception
 	{
 		public GLTFHeaderInvalidException() : base() { }
@@ -14,16 +13,14 @@ namespace GLTF
 		{ }
 #endif
 	}
-
-	// todo blgross unity - move over when doing unity layer
-	[Serializable()]
-	public class ShaderNotFoundException : Exception
+	
+	public class GLTFParseException : Exception
 	{
-		public ShaderNotFoundException() : base() { }
-		public ShaderNotFoundException(string message) : base(message) { }
-		public ShaderNotFoundException(string message, Exception inner) : base(message, inner) { }
+		public GLTFParseException() : base() { }
+		public GLTFParseException(string message) : base(message) { }
+		public GLTFParseException(string message, Exception inner) : base(message, inner) { }
 #if !WINDOWS_UWP
-		protected ShaderNotFoundException(System.Runtime.Serialization.SerializationInfo info,
+		protected GLTFParseException(System.Runtime.Serialization.SerializationInfo info,
 			System.Runtime.Serialization.StreamingContext context)
 		{ }
 #endif

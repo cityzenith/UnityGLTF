@@ -27,6 +27,23 @@ namespace GLTF.Schema
 		/// </summary>
 		public BufferViewId BufferView;
 
+		public Image()
+		{
+		}
+
+		public Image(Image image, GLTFRoot gltfRoot) : base(image, gltfRoot)
+		{
+			if (image == null) return;
+
+			Uri = image.Uri;
+			MimeType = image.MimeType;
+
+			if (image.BufferView != null)
+			{
+				BufferView = new BufferViewId(image.BufferView, gltfRoot);
+			}
+		}
+
 		public static Image Deserialize(GLTFRoot root, JsonReader reader)
 		{
 			var image = new Image();
@@ -55,20 +72,24 @@ namespace GLTF.Schema
 			return image;
 		}
 
-		public override void Serialize(JsonWriter writer) {
+		public override void Serialize(JsonWriter writer)
+		{
 			writer.WriteStartObject();
 
-			if (Uri != null) {
+			if (Uri != null)
+			{
 				writer.WritePropertyName("uri");
 				writer.WriteValue(Uri);
 			}
 
-			if (MimeType != null) {
+			if (MimeType != null)
+			{
 				writer.WritePropertyName("mimeType");
 				writer.WriteValue(Newtonsoft.Json.Linq.JValue.CreateString(MimeType).ToString());
 			}
 
-			if (BufferView != null) {
+			if (BufferView != null)
+			{
 				writer.WritePropertyName("bufferView");
 				writer.WriteValue(BufferView);
 			}

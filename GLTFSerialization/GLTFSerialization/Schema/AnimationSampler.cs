@@ -6,7 +6,9 @@ namespace GLTF.Schema
 	public enum InterpolationType
 	{
 		LINEAR,
-		STEP
+		STEP,
+		CATMULLROMSPLINE,
+		CUBICSPLINE
 	}
 
 	/// <summary>
@@ -37,6 +39,19 @@ namespace GLTF.Schema
 		/// output accessor's componentType must be `FLOAT`.
 		/// </summary>
 		public AccessorId Output;
+
+		public AnimationSampler()
+		{
+		}
+
+		public AnimationSampler(AnimationSampler animationSampler, GLTFRoot gltfRoot) : base(animationSampler)
+		{
+			if (animationSampler == null) return;
+
+			Input = new AccessorId(animationSampler.Input, gltfRoot);
+			Interpolation = animationSampler.Interpolation;
+			Output = new AccessorId(animationSampler.Output, gltfRoot);
+		}
 
 		public static AnimationSampler Deserialize(GLTFRoot root, JsonReader reader)
 		{

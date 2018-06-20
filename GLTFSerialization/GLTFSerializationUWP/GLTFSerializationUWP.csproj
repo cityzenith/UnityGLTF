@@ -54,6 +54,18 @@
     <Compile Include="..\GLTFSerialization\Exceptions.cs">
       <Link>Exceptions.cs</Link>
     </Compile>
+    <Compile Include="..\GLTFSerialization\Extensions\ExtTextureTransformExtension.cs">
+      <Link>Extensions\ExtTextureTransformExtension.cs</Link>
+    </Compile>
+    <Compile Include="..\GLTFSerialization\Extensions\ExtTextureTransformExtensionFactory.cs">
+      <Link>Extensions\ExtTextureTransformExtensionFactory.cs</Link>
+    </Compile>
+    <Compile Include="..\GLTFSerialization\Extensions\KHR_materials_pbrSpecularGlossinessExtension.cs">
+      <Link>Extensions\KHR_materials_pbrSpecularGlossinessExtension.cs</Link>
+    </Compile>
+    <Compile Include="..\GLTFSerialization\Extensions\KHR_materials_pbrSpecularGlossinessExtensionFactory.cs">
+      <Link>Extensions\KHR_materials_pbrSpecularGlossinessExtensionFactory.cs</Link>
+    </Compile>
     <Compile Include="..\GLTFSerialization\GLTFHelpers.cs">
       <Link>GLTFHelpers.cs</Link>
     </Compile>
@@ -117,9 +129,6 @@
     <Compile Include="..\GLTFSerialization\Schema\CameraPerspective.cs">
       <Link>Schema\CameraPerspective.cs</Link>
     </Compile>
-    <Compile Include="..\GLTFSerialization\Schema\Extension.cs">
-      <Link>Schema\Extension.cs</Link>
-    </Compile>
     <Compile Include="..\GLTFSerialization\Schema\GLTFChildOfRootProperty.cs">
       <Link>Schema\GLTFChildOfRootProperty.cs</Link>
     </Compile>
@@ -131,6 +140,9 @@
     </Compile>
     <Compile Include="..\GLTFSerialization\Schema\GLTFRoot.cs">
       <Link>Schema\GLTFRoot.cs</Link>
+    </Compile>
+    <Compile Include="..\GLTFSerialization\Schema\IExtension.cs">
+      <Link>Schema\IExtension.cs</Link>
     </Compile>
     <Compile Include="..\GLTFSerialization\Schema\Image.cs">
       <Link>Schema\Image.cs</Link>

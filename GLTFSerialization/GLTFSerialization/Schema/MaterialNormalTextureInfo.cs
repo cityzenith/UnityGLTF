@@ -5,12 +5,23 @@ namespace GLTF.Schema
 {
 	public class NormalTextureInfo : TextureInfo
 	{
+		public const string SCALE = "scale";
+
 		/// <summary>
 		/// The scalar multiplier applied to each normal vector of the texture.
 		/// This value is ignored if normalTexture is not specified.
 		/// This value is linear.
 		/// </summary>
 		public double Scale = 1.0f;
+
+		public NormalTextureInfo()
+		{
+		}
+
+		public NormalTextureInfo(NormalTextureInfo normalTextureInfo, GLTFRoot gltfRoot) : base(normalTextureInfo, gltfRoot)
+		{
+			Scale = normalTextureInfo.Scale;
+		}
 
 		public static new NormalTextureInfo Deserialize(GLTFRoot root, JsonReader reader)
 		{
@@ -27,13 +38,13 @@ namespace GLTF.Schema
 
 				switch (curProp)
 				{
-					case "index":
+					case INDEX:
 						textureInfo.Index = TextureId.Deserialize(root, reader);
 						break;
-					case "texCoord":
+					case TEXCOORD:
 						textureInfo.TexCoord = reader.ReadAsInt32().Value;
 						break;
-					case "scale":
+					case SCALE:
 						textureInfo.Scale = reader.ReadAsDouble().Value;
 						break;
 					default:
@@ -45,7 +56,8 @@ namespace GLTF.Schema
 			return textureInfo;
 		}
 
-		public override void Serialize(JsonWriter writer) {
+		public override void Serialize(JsonWriter writer)
+		{
 			writer.WriteStartObject();
 
 			if (Scale != 1.0f)

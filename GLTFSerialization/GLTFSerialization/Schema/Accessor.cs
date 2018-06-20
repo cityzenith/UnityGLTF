@@ -1,8 +1,10 @@
 using System;
 using System.Collections.Generic;
+using System.Linq;
 using GLTF.Extensions;
 using GLTF.Math;
 using Newtonsoft.Json;
+using System.Runtime.InteropServices;
 
 namespace GLTF.Schema
 {
@@ -94,10 +96,47 @@ namespace GLTF.Schema
 		/// </summary>
 		public AccessorSparse Sparse;
 
+		public Accessor()
+		{
+		}
+
+		public Accessor(Accessor accessor, GLTFRoot gltfRoot) : base(accessor, gltfRoot)
+		{
+            if (accessor == null)
+            {
+                return;
+            }
+
+			if (accessor.BufferView != null)
+			{
+				BufferView = new BufferViewId(accessor.BufferView, gltfRoot);
+			}
+
+			ByteOffset = accessor.ByteOffset;
+			ComponentType = accessor.ComponentType;
+			Normalized = accessor.Normalized;
+			Count = accessor.Count;
+			Type = accessor.Type;
+
+			if (accessor.Max != null)
+			{
+				Max = accessor.Max.ToList();
+			}
+
+			if (accessor.Min != null)
+			{
+				Min = accessor.Min.ToList();
+			}
+
+			if (accessor.Sparse != null)
+			{
+				Sparse = new AccessorSparse(accessor.Sparse, gltfRoot);
+			}
+		}
+
 		public static Accessor Deserialize(GLTFRoot root, JsonReader reader)
 		{
 			var accessor = new Accessor();
-
 			while (reader.Read() && reader.TokenType == JsonToken.PropertyName)
 			{
 				var curProp = reader.Value.ToString();
@@ -212,91 +251,67 @@ namespace GLTF.Schema
 			writer.WriteEndObject();
 		}
 
-		private static unsafe int GetByteElement(byte[] buffer, int byteOffset)
+		private static sbyte GetByteElement(byte[] buffer, int byteOffset)
 		{
-			fixed (byte* offsetBuffer = &buffer[byteOffset])
-			{
-				return *((sbyte*)offsetBuffer);
-			}
+			return Convert.ToSByte(GetUByteElement(buffer, byteOffset));
 		}
 
-		private static unsafe int GetUByteElement(byte[] buffer, int byteOffset)
+		private static byte GetUByteElement(byte[] buffer, int byteOffset)
 		{
-			fixed (byte* offsetBuffer = &buffer[byteOffset])
-			{
-				return *((byte*)offsetBuffer);
-			}
+			return buffer[byteOffset]; // should only be byte size long
 		}
 
-		private static unsafe int GetShortElement(byte[] buffer, int byteOffset)
+		private static short GetShortElement(byte[] buffer, int byteOffset)
 		{
-			fixed (byte* offsetBuffer = &buffer[byteOffset])
-			{
-				return *((short*)offsetBuffer);
-			}
+			return BitConverter.ToInt16(buffer, byteOffset);
 		}
 
-		private static unsafe int GetUShortElement(byte[] buffer, int byteOffset)
+		private static ushort GetUShortElement(byte[] buffer, int byteOffset)
 		{
-			fixed (byte* offsetBuffer = &buffer[byteOffset])
-			{
-				return *((ushort*)offsetBuffer);
-			}
+			return BitConverter.ToUInt16(buffer, byteOffset);
 		}
 
-		private static unsafe int GetUIntElement(byte[] buffer, int byteOffset)
+		private static uint GetUIntElement(byte[] buffer, int byteOffset)
 		{
-			fixed (byte* offsetBuffer = &buffer[byteOffset])
-			{
-				return (int) *((uint*)offsetBuffer);
-			}
+			return BitConverter.ToUInt32(buffer, byteOffset);
 		}
 
-		private static unsafe float GetFloatElement(byte[] buffer, int byteOffset)
+		private static float GetFloatElement(byte[] buffer, int byteOffset)
 		{
-			fixed (byte* offsetBuffer = &buffer[byteOffset])
-			{
-				return *((float*)offsetBuffer);
-			}
+			return BitConverter.ToSingle(buffer, byteOffset);
 		}
 
-		private static void GetTypeDetails(GLTFComponentType type, out int componentSize, out float maxValue,
-			out Func<byte[], int, int> discreteFunc, out Func<byte[], int, float> continuousFunc)
+		private static void GetTypeDetails(
+			GLTFComponentType type,
+			out int componentSize,
+			out float maxValue)
 		{
 			componentSize = 1;
 			maxValue = byte.MaxValue;
-			discreteFunc = GetUByteElement;
-			continuousFunc = GetFloatElement;
 
 			switch (type)
 			{
 				case GLTFComponentType.Byte:
-					discreteFunc = GetByteElement;
 					componentSize = sizeof(sbyte);
 					maxValue = sbyte.MaxValue;
 					break;
 				case GLTFComponentType.UnsignedByte:
-					discreteFunc = GetUByteElement;
 					componentSize = sizeof(byte);
 					maxValue = byte.MaxValue;
 					break;
 				case GLTFComponentType.Short:
-					discreteFunc = GetShortElement;
 					componentSize = sizeof(short);
 					maxValue = short.MaxValue;
 					break;
 				case GLTFComponentType.UnsignedShort:
-					discreteFunc = GetUShortElement;
 					componentSize = sizeof(ushort);
 					maxValue = ushort.MaxValue;
 					break;
 				case GLTFComponentType.UnsignedInt:
-					discreteFunc = GetUIntElement;
 					componentSize = sizeof(uint);
 					maxValue = uint.MaxValue;
 					break;
 				case GLTFComponentType.Float:
-					continuousFunc = GetFloatElement;
 					componentSize = sizeof(float);
 					maxValue = float.MaxValue;
 					break;
@@ -305,49 +320,95 @@ namespace GLTF.Schema
 			}
 		}
 
-		public int[] AsIntArray(ref NumericArray contents, byte[] bufferData)
+		public uint[] AsUIntArray(ref NumericArray contents, byte[] bufferViewData, int offset)
 		{
-			if (contents.AsInts != null) return contents.AsInts;
+            if (contents.AsUInts != null)
+            {
+                return contents.AsUInts;
+            }
 
-			if (Type != GLTFAccessorAttributeType.SCALAR) return null;
+            if (Type != GLTFAccessorAttributeType.SCALAR)
+            {
+                return null;
+            }
 
-			var arr = new int[Count];
-			var totalByteOffset = BufferView.Value.ByteOffset + ByteOffset;
+			var arr = new uint[Count];
+			var totalByteOffset = ByteOffset + offset;
 
 			int componentSize;
 			float maxValue;
-			Func<byte[], int, int> getDiscreteElement;
-			Func<byte[], int, float> getContinuousElement;
-			GetTypeDetails(ComponentType, out componentSize, out maxValue, out getDiscreteElement, out getContinuousElement);
+			GetTypeDetails(ComponentType, out componentSize, out maxValue);
 
 			var stride = BufferView.Value.ByteStride > 0 ? BufferView.Value.ByteStride : componentSize;
 
 			for (var idx = 0; idx < Count; idx++)
 			{
 				if (ComponentType == GLTFComponentType.Float)
-					arr[idx] = (int)System.Math.Floor(getContinuousElement(bufferData, totalByteOffset + idx * stride));
+					arr[idx] = (uint)System.Math.Floor(GetFloatElement(bufferViewData, totalByteOffset + idx * stride));
 				else
-					arr[idx] = getDiscreteElement(bufferData, totalByteOffset + idx * stride);
+					arr[idx] = GetUnsignedDiscreteElement(bufferViewData, totalByteOffset + idx * stride, ComponentType);
 			}
 
-			contents.AsInts = arr;
+			contents.AsUInts = arr;
 			return arr;
 		}
 
-		public Vector2[] AsVector2Array(ref NumericArray contents, byte[] bufferData, bool normalizeIntValues = true)
+		public float[] AsFloatArray(ref NumericArray contents, byte[] bufferViewData, int offset)
 		{
-			if (contents.AsVec2s != null) return contents.AsVec2s;
+            if (contents.AsUInts != null)
+            {
+                return contents.AsFloats;
+            }
 
-			if (Type != GLTFAccessorAttributeType.VEC2) return null;
+            if (Type != GLTFAccessorAttributeType.SCALAR)
+            {
+                return null;
+            }
 
-			var arr = new Vector2[Count];
-			var totalByteOffset = BufferView.Value.ByteOffset + ByteOffset;
+			var arr = new float[Count];
+			var totalByteOffset = ByteOffset + offset;
 
 			int componentSize;
 			float maxValue;
-			Func<byte[], int, int> getDiscreteElement;
-			Func<byte[], int, float> getContinuousElement;
-			GetTypeDetails(ComponentType, out componentSize, out maxValue, out getDiscreteElement, out getContinuousElement);
+			GetTypeDetails(ComponentType, out componentSize, out maxValue);
+
+			var stride = BufferView.Value.ByteStride > 0 ? BufferView.Value.ByteStride : componentSize;
+
+			for (var idx = 0; idx < Count; idx++)
+			{
+				if (ComponentType == GLTFComponentType.Float)
+					arr[idx] = GetFloatElement(bufferViewData, totalByteOffset + idx * stride);
+				else
+					arr[idx] = GetUnsignedDiscreteElement(bufferViewData, totalByteOffset + idx * stride, ComponentType);
+			}
+
+			contents.AsFloats = arr;
+			return arr;
+		}
+
+		public Vector2[] AsVector2Array(ref NumericArray contents, byte[] bufferViewData, int offset, bool normalizeIntValues = true)
+		{
+            if (contents.AsVec2s != null)
+            {
+                return contents.AsVec2s;
+            }
+
+            if (Type != GLTFAccessorAttributeType.VEC2)
+            {
+                return null;
+            }
+
+            if (ComponentType == GLTFComponentType.UnsignedInt)
+            {
+                return null;
+            }
+
+			var arr = new Vector2[Count];
+			var totalByteOffset = ByteOffset + offset;
+
+			int componentSize;
+			float maxValue;
+			GetTypeDetails(ComponentType, out componentSize, out maxValue);
 
 			var stride = BufferView.Value.ByteStride > 0 ? BufferView.Value.ByteStride : componentSize * 2;
 			if (normalizeIntValues) maxValue = 1;
@@ -356,13 +417,13 @@ namespace GLTF.Schema
 			{
 				if (ComponentType == GLTFComponentType.Float)
 				{
-					arr[idx].X = getContinuousElement(bufferData, totalByteOffset + idx * stride + componentSize * 0);
-					arr[idx].Y = getContinuousElement(bufferData, totalByteOffset + idx * stride + componentSize * 1);
+					arr[idx].X = GetFloatElement(bufferViewData, totalByteOffset + idx * stride + componentSize * 0);
+					arr[idx].Y = GetFloatElement(bufferViewData, totalByteOffset + idx * stride + componentSize * 1);
 				}
 				else
 				{
-					arr[idx].X = getDiscreteElement(bufferData, totalByteOffset + idx * stride + componentSize * 0) / maxValue;
-					arr[idx].Y = getDiscreteElement(bufferData, totalByteOffset + idx * stride + componentSize * 1) / maxValue;
+					arr[idx].X = GetDiscreteElement(bufferViewData, totalByteOffset + idx * stride + componentSize * 0, ComponentType) / maxValue;
+					arr[idx].Y = GetDiscreteElement(bufferViewData, totalByteOffset + idx * stride + componentSize * 1, ComponentType) / maxValue;
 				}
 			}
 
@@ -370,20 +431,29 @@ namespace GLTF.Schema
 			return arr;
 		}
 
-		public Vector3[] AsVector3Array(ref NumericArray contents, byte[] bufferData, bool normalizeIntValues = true)
+		public Vector3[] AsVector3Array(ref NumericArray contents, byte[] bufferViewData, int offset, bool normalizeIntValues = true)
 		{
-			if (contents.AsVec3s != null) return contents.AsVec3s;
+            if (contents.AsVec3s != null)
+            {
+                return contents.AsVec3s;
+            }
 
-			if (Type != GLTFAccessorAttributeType.VEC3) return null;
+            if (Type != GLTFAccessorAttributeType.VEC3)
+            {
+                return null;
+            }
+
+            if (ComponentType == GLTFComponentType.UnsignedInt)
+            {
+                return null;
+            }
 
 			var arr = new Vector3[Count];
-			var totalByteOffset = BufferView.Value.ByteOffset + ByteOffset;
+			var totalByteOffset = ByteOffset + offset;
 
 			int componentSize;
 			float maxValue;
-			Func<byte[], int, int> getDiscreteElement;
-			Func<byte[], int, float> getContinuousElement;
-			GetTypeDetails(ComponentType, out componentSize, out maxValue, out getDiscreteElement, out getContinuousElement);
+			GetTypeDetails(ComponentType, out componentSize, out maxValue);
 
 			var stride = BufferView.Value.ByteStride > 0 ? BufferView.Value.ByteStride : componentSize * 3;
 			if (normalizeIntValues) maxValue = 1;
@@ -392,15 +462,15 @@ namespace GLTF.Schema
 			{
 				if (ComponentType == GLTFComponentType.Float)
 				{
-					arr[idx].X = getContinuousElement(bufferData, totalByteOffset + idx * stride + componentSize * 0);
-					arr[idx].Y = getContinuousElement(bufferData, totalByteOffset + idx * stride + componentSize * 1);
-					arr[idx].Z = getContinuousElement(bufferData, totalByteOffset + idx * stride + componentSize * 2);
+					arr[idx].X = GetFloatElement(bufferViewData, totalByteOffset + idx * stride + componentSize * 0);
+					arr[idx].Y = GetFloatElement(bufferViewData, totalByteOffset + idx * stride + componentSize * 1);
+					arr[idx].Z = GetFloatElement(bufferViewData, totalByteOffset + idx * stride + componentSize * 2);
 				}
 				else
 				{
-					arr[idx].X = getDiscreteElement(bufferData, totalByteOffset + idx * stride + componentSize * 0) / maxValue;
-					arr[idx].Y = getDiscreteElement(bufferData, totalByteOffset + idx * stride + componentSize * 1) / maxValue;
-					arr[idx].Z = getDiscreteElement(bufferData, totalByteOffset + idx * stride + componentSize * 2) / maxValue;
+					arr[idx].X = GetDiscreteElement(bufferViewData, totalByteOffset + idx * stride + componentSize * 0, ComponentType) / maxValue;
+					arr[idx].Y = GetDiscreteElement(bufferViewData, totalByteOffset + idx * stride + componentSize * 1, ComponentType) / maxValue;
+					arr[idx].Z = GetDiscreteElement(bufferViewData, totalByteOffset + idx * stride + componentSize * 2, ComponentType) / maxValue;
 				}
 			}
 
@@ -408,20 +478,29 @@ namespace GLTF.Schema
 			return arr;
 		}
 
-		public Vector4[] AsVector4Array(ref NumericArray contents, byte[] bufferData, bool normalizeIntValues = true)
-		{
-			if (contents.AsVec4s != null) return contents.AsVec4s;
+        public Vector4[] AsVector4Array(ref NumericArray contents, byte[] bufferViewData, int offset, bool normalizeIntValues = true)
+        {
+            if (contents.AsVec4s != null)
+            {
+                return contents.AsVec4s;
+            }
 
-			if (Type != GLTFAccessorAttributeType.VEC4) return null;
+            if (Type != GLTFAccessorAttributeType.VEC4)
+            {
+                return null;
+            }
 
+            if (ComponentType == GLTFComponentType.UnsignedInt)
+            {
+                return null;
+            }
+			
 			var arr = new Vector4[Count];
-			var totalByteOffset = BufferView.Value.ByteOffset + ByteOffset;
+			var totalByteOffset = ByteOffset + offset;
 
 			int componentSize;
 			float maxValue;
-			Func<byte[], int, int> getDiscreteElement;
-			Func<byte[], int, float> getContinuousElement;
-			GetTypeDetails(ComponentType, out componentSize, out maxValue, out getDiscreteElement, out getContinuousElement);
+			GetTypeDetails(ComponentType, out componentSize, out maxValue);
 
 			var stride = BufferView.Value.ByteStride > 0 ? BufferView.Value.ByteStride : componentSize * 4;
 			if (normalizeIntValues) maxValue = 1;
@@ -430,17 +509,17 @@ namespace GLTF.Schema
 			{
 				if (ComponentType == GLTFComponentType.Float)
 				{
-					arr[idx].X = getContinuousElement(bufferData, totalByteOffset + idx * stride + componentSize * 0);
-					arr[idx].Y = getContinuousElement(bufferData, totalByteOffset + idx * stride + componentSize * 1);
-					arr[idx].Z = getContinuousElement(bufferData, totalByteOffset + idx * stride + componentSize * 2);
-					arr[idx].W = getContinuousElement(bufferData, totalByteOffset + idx * stride + componentSize * 3);
+					arr[idx].X = GetFloatElement(bufferViewData, totalByteOffset + idx * stride + componentSize * 0);
+					arr[idx].Y = GetFloatElement(bufferViewData, totalByteOffset + idx * stride + componentSize * 1);
+					arr[idx].Z = GetFloatElement(bufferViewData, totalByteOffset + idx * stride + componentSize * 2);
+					arr[idx].W = GetFloatElement(bufferViewData, totalByteOffset + idx * stride + componentSize * 3);
 				}
 				else
 				{
-					arr[idx].X = getDiscreteElement(bufferData, totalByteOffset + idx * stride + componentSize * 0) / maxValue;
-					arr[idx].Y = getDiscreteElement(bufferData, totalByteOffset + idx * stride + componentSize * 1) / maxValue;
-					arr[idx].Z = getDiscreteElement(bufferData, totalByteOffset + idx * stride + componentSize * 2) / maxValue;
-					arr[idx].W = getDiscreteElement(bufferData, totalByteOffset + idx * stride + componentSize * 3) / maxValue;
+					arr[idx].X = GetDiscreteElement(bufferViewData, totalByteOffset + idx * stride + componentSize * 0, ComponentType) / maxValue;
+					arr[idx].Y = GetDiscreteElement(bufferViewData, totalByteOffset + idx * stride + componentSize * 1, ComponentType) / maxValue;
+					arr[idx].Z = GetDiscreteElement(bufferViewData, totalByteOffset + idx * stride + componentSize * 2, ComponentType) / maxValue;
+					arr[idx].W = GetDiscreteElement(bufferViewData, totalByteOffset + idx * stride + componentSize * 3, ComponentType) / maxValue;
 				}
 			}
 
@@ -448,21 +527,29 @@ namespace GLTF.Schema
 			return arr;
 		}
 
-		public Color[] AsColorArray(ref NumericArray contents, byte[] bufferData)
+		public Color[] AsColorArray(ref NumericArray contents, byte[] bufferViewData, int offset)
 		{
-			if (contents.AsColors != null) return contents.AsColors;
+            if (contents.AsColors != null)
+            {
+                return contents.AsColors;
+            }
 
-			if (Type != GLTFAccessorAttributeType.VEC3 && Type != GLTFAccessorAttributeType.VEC4)
-				return null;
+            if (Type != GLTFAccessorAttributeType.VEC3 && Type != GLTFAccessorAttributeType.VEC4)
+            {
+                return null;
+            }
 
+            if (ComponentType == GLTFComponentType.UnsignedInt)
+            {
+                return null;
+            }
+			
 			var arr = new Color[Count];
-			var totalByteOffset = BufferView.Value.ByteOffset + ByteOffset;
+			var totalByteOffset = ByteOffset + offset;
 
 			int componentSize;
 			float maxValue;
-			Func<byte[], int, int> getDiscreteElement;
-			Func<byte[], int, float> getContinuousElement;
-			GetTypeDetails(ComponentType, out componentSize, out maxValue, out getDiscreteElement, out getContinuousElement);
+			GetTypeDetails(ComponentType, out componentSize, out maxValue);
 
 			var stride = BufferView.Value.ByteStride > 0 ? BufferView.Value.ByteStride : componentSize * (Type == GLTFAccessorAttributeType.VEC3 ? 3 : 4);
 
@@ -470,21 +557,22 @@ namespace GLTF.Schema
 			{
 				if (ComponentType == GLTFComponentType.Float)
 				{
-					arr[idx].R = getContinuousElement(bufferData, totalByteOffset + idx * stride + componentSize * 0);
-					arr[idx].G = getContinuousElement(bufferData, totalByteOffset + idx * stride + componentSize * 1);
-					arr[idx].B = getContinuousElement(bufferData, totalByteOffset + idx * stride + componentSize * 2);
+					arr[idx].R = GetFloatElement(bufferViewData, totalByteOffset + idx * stride + componentSize * 0);
+					arr[idx].G = GetFloatElement(bufferViewData, totalByteOffset + idx * stride + componentSize * 1);
+					arr[idx].B = GetFloatElement(bufferViewData, totalByteOffset + idx * stride + componentSize * 2);
 					if (Type == GLTFAccessorAttributeType.VEC4)
-						arr[idx].A = getContinuousElement(bufferData, totalByteOffset + idx * stride + componentSize * 3);
+						arr[idx].A = GetFloatElement(bufferViewData, totalByteOffset + idx * stride + componentSize * 3);
 					else
 						arr[idx].A = 1;
 				}
 				else
 				{
-					arr[idx].R = getDiscreteElement(bufferData, totalByteOffset + idx * stride + componentSize * 0) / maxValue;
-					arr[idx].G = getDiscreteElement(bufferData, totalByteOffset + idx * stride + componentSize * 1) / maxValue;
-					arr[idx].B = getDiscreteElement(bufferData, totalByteOffset + idx * stride + componentSize * 2) / maxValue;
+					// todo: can be optimized to get these in a block...
+					arr[idx].R = GetDiscreteElement(bufferViewData, totalByteOffset + idx * stride + componentSize * 0, ComponentType) / maxValue;
+					arr[idx].G = GetDiscreteElement(bufferViewData, totalByteOffset + idx * stride + componentSize * 1, ComponentType) / maxValue;
+					arr[idx].B = GetDiscreteElement(bufferViewData, totalByteOffset + idx * stride + componentSize * 2, ComponentType) / maxValue;
 					if (Type == GLTFAccessorAttributeType.VEC4)
-						arr[idx].A = getDiscreteElement(bufferData, totalByteOffset + idx * stride + componentSize * 3) / maxValue;
+						arr[idx].A = GetDiscreteElement(bufferViewData, totalByteOffset + idx * stride + componentSize * 3, ComponentType) / maxValue;
 					else
 						arr[idx].A = 1;
 				}
@@ -494,85 +582,174 @@ namespace GLTF.Schema
 			return arr;
 		}
 
-		public Vector2[] AsTexcoordArray(ref NumericArray contents, byte[] bufferData)
+		public Vector2[] AsTexcoordArray(ref NumericArray contents, byte[] bufferViewData, int offset)
 		{
-			if (contents.AsTexcoords != null) return contents.AsTexcoords;
+            if (contents.AsTexcoords != null)
+            {
+                return contents.AsTexcoords;
+            }
 
-			var arr = AsVector2Array(ref contents, bufferData);
-			for (var i = 0; i < arr.Length; i++)
-			{
-				arr[i].Y *= -1;
-			}
+			contents.AsTexcoords = AsVector2Array(ref contents, bufferViewData, offset);
 
-			contents.AsTexcoords = arr;
-			contents.AsVec2s = null;
-
-			return arr;
+			return contents.AsTexcoords;
 		}
 
-		public Vector3[] AsVertexArray(ref NumericArray contents, byte[] bufferData)
+		public Vector3[] AsVertexArray(ref NumericArray contents, byte[] bufferViewData, int offset)
 		{
-			if (contents.AsVertices != null) return contents.AsVertices;
+            if (contents.AsVertices != null)
+            {
+                return contents.AsVertices;
+            }
 
-			var arr = AsVector3Array(ref contents, bufferData);
-			for (var i = 0; i < arr.Length; i++)
-			{
-				arr[i].Z *= -1;
-			}
+			contents.AsVertices = AsVector3Array(ref contents, bufferViewData, offset);
 
-			contents.AsVertices = arr;
-			contents.AsVec3s = null;
-
-			return arr;
+			return contents.AsVertices;
 		}
 
-		public Vector3[] AsNormalArray(ref NumericArray contents, byte[] bufferData)
+		public Vector3[] AsNormalArray(ref NumericArray contents, byte[] bufferViewData, int offset)
 		{
-			if (contents.AsNormals != null) return contents.AsNormals;
+            if (contents.AsNormals != null)
+            {
+                return contents.AsNormals;
+            }
 
-			var arr = AsVector3Array(ref contents, bufferData);
-			for (var i = 0; i < arr.Length; i++)
-			{
-				arr[i].Z *= -1;
-			}
+			contents.AsNormals = AsVector3Array(ref contents, bufferViewData, offset);
 
-			contents.AsNormals = arr;
-			contents.AsVec3s = null;
-
-			return arr;
+			return contents.AsNormals;
 		}
 
-		public Vector4[] AsTangentArray(ref NumericArray contents, byte[] bufferData)
+		public Vector4[] AsTangentArray(ref NumericArray contents, byte[] bufferViewData, int offset)
 		{
-			if (contents.AsTangents != null) return contents.AsTangents;
+            if (contents.AsTangents != null)
+            {
+                return contents.AsTangents;
+            }
 
-			var arr = AsVector4Array(ref contents, bufferData);
-			for (var i = 0; i < arr.Length; i++)
-			{
-				arr[i].W *= -1;
-			}
+			contents.AsTangents = AsVector4Array(ref contents, bufferViewData, offset);
 
-			contents.AsTangents = arr;
-			contents.AsVec4s = null;
-
-			return arr;
+			return contents.AsTangents;
 		}
 
-		public int[] AsTriangles(ref NumericArray contents, byte[] bufferData)
+		public uint[] AsTriangles(ref NumericArray contents, byte[] bufferViewData, int offset)
 		{
-			if (contents.AsTriangles != null) return contents.AsTriangles;
+            if (contents.AsTriangles != null)
+            {
+                return contents.AsTriangles;
+            }
 
-			var arr = AsIntArray(ref contents, bufferData);
-			for (var i = 0; i < arr.Length; i += 3)
+			contents.AsTriangles = AsUIntArray(ref contents, bufferViewData, offset);
+
+			return contents.AsTriangles;
+		}
+
+		private static int GetDiscreteElement(byte[] bufferViewData, int offset, GLTFComponentType type)
+		{
+			switch(type)
 			{
-				var temp = arr[i];
-				arr[i] = arr[i + 2];
-				arr[i + 2] = temp;
+				case GLTFComponentType.Byte:
+				{
+					return GetByteElement(bufferViewData, offset);
+				}
+				case GLTFComponentType.UnsignedByte:
+				{
+					return GetUByteElement(bufferViewData, offset);
+				}
+				case GLTFComponentType.Short:
+				{
+					return GetShortElement(bufferViewData, offset);
+				}
+				case GLTFComponentType.UnsignedShort:
+				{
+					return GetUShortElement(bufferViewData, offset);
+				}
+				default:
+				{
+					throw new Exception("Unsupported type passed in: " + type);
+				}
+			}
+		}
+
+		// technically byte and short are not spec compliant for unsigned types, but various files have it
+		private static uint GetUnsignedDiscreteElement(byte[] bufferViewData, int offset, GLTFComponentType type)
+		{
+			switch(type)
+			{
+				case GLTFComponentType.Byte:
+				{
+					return (uint)GetByteElement(bufferViewData, offset);
+				}
+				case GLTFComponentType.UnsignedByte:
+				{
+					return GetUByteElement(bufferViewData, offset);
+				}
+				case GLTFComponentType.Short:
+				{
+					return (uint)GetShortElement(bufferViewData, offset);
+				}
+				case GLTFComponentType.UnsignedShort:
+				{
+					return GetUShortElement(bufferViewData, offset);
+				}
+				case GLTFComponentType.UnsignedInt:
+				{
+					return GetUIntElement(bufferViewData, offset);
+				}
+				default:
+				{
+					throw new Exception("Unsupported type passed in: " + type);
+				}
+			}
+		}
+
+		public Matrix4x4[] AsMatrix4x4Array(ref NumericArray contents, byte[] bufferViewData, int offset, bool normalizeIntValues = true)
+		{
+            if (contents.AsMatrix4x4s != null)
+            {
+                return contents.AsMatrix4x4s;
+            }
+
+            if (Type != GLTFAccessorAttributeType.MAT4)
+            {
+                return null;
+            }
+
+			Matrix4x4[] arr = new Matrix4x4[Count];
+			var totalByteOffset = ByteOffset + offset;
+
+			int componentSize;
+			float maxValue;
+			GetTypeDetails(ComponentType, out componentSize, out maxValue);
+
+            if (normalizeIntValues)
+            {
+                maxValue = 1;
+            }
+
+            var stride = BufferView.Value.ByteStride > 0 ? BufferView.Value.ByteStride : componentSize * 16;
+
+			for (var idx = 0; idx < Count; idx++)
+			{
+				arr[idx] = new Matrix4x4(Matrix4x4.Identity);
+
+				if (ComponentType == GLTFComponentType.Float)
+				{
+					for (int i = 0; i < 16; i++)
+					{
+						float value = GetFloatElement(bufferViewData, totalByteOffset + idx * stride + componentSize * i);
+						arr[idx].SetValue(i, value);
+					}
+				}
+				else
+				{
+					for (int i = 0; i < 16; i++)
+					{
+						float value = GetDiscreteElement(bufferViewData, totalByteOffset + idx * stride + componentSize * i, ComponentType) / maxValue;
+						arr[idx].SetValue(i, value);
+					}
+				}
 			}
 
-			contents.AsTriangles = arr;
-			contents.AsInts = null;
-
+			contents.AsMatrix4x4s = arr;
 			return arr;
 		}
 	}
@@ -598,18 +775,35 @@ namespace GLTF.Schema
 		MAT4
 	}
 
-	// todo: this should be a union
+    /// <summary>
+    /// This struct is a union, and should be used as such
+    /// </summary>
+	[StructLayout(LayoutKind.Explicit)]
 	public struct NumericArray
 	{
-		public int[] AsInts;
+		[FieldOffset(0)]
+		public uint[] AsUInts;
+		[FieldOffset(0)]
+		public float[] AsFloats;
+		[FieldOffset(0)]
 		public Vector2[] AsVec2s;
+		[FieldOffset(0)]
 		public Vector3[] AsVec3s;
+		[FieldOffset(0)]
 		public Vector4[] AsVec4s;
+		[FieldOffset(0)]
+		public Matrix4x4[] AsMatrix4x4s;
+		[FieldOffset(0)]
 		public Color[] AsColors;
+		[FieldOffset(0)]
 		public Vector2[] AsTexcoords;
+		[FieldOffset(0)]
 		public Vector3[] AsVertices;
+		[FieldOffset(0)]
 		public Vector3[] AsNormals;
+		[FieldOffset(0)]
 		public Vector4[] AsTangents;
-		public int[] AsTriangles;
+		[FieldOffset(0)]
+		public uint[] AsTriangles;
 	}
 }

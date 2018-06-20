@@ -47,6 +47,50 @@ namespace GLTF.Schema
 		/// TODO: Make dictionary key enums?
 		public List<Dictionary<string, AccessorId>> Targets;
 
+		public MeshPrimitive()
+		{
+		}
+
+		public MeshPrimitive(MeshPrimitive meshPrimitive, GLTFRoot gltfRoot) : base(meshPrimitive)
+		{
+			if (meshPrimitive == null) return;
+
+			if (meshPrimitive.Attributes != null)
+			{
+				Attributes = new Dictionary<string, AccessorId>(meshPrimitive.Attributes.Count);
+				foreach (KeyValuePair<string, AccessorId> attributeKeyValuePair in meshPrimitive.Attributes)
+				{
+					Attributes[attributeKeyValuePair.Key] = new AccessorId(attributeKeyValuePair.Value, gltfRoot);
+				}
+			}
+			
+			if (meshPrimitive.Indices != null)
+			{
+				Indices = new AccessorId(meshPrimitive.Indices, gltfRoot);
+			}
+
+			if (meshPrimitive.Material != null)
+			{
+				Material = new MaterialId(meshPrimitive.Material, gltfRoot);
+			}
+
+			Mode = meshPrimitive.Mode;
+
+			if (meshPrimitive.Targets != null)
+			{
+				Targets = new List<Dictionary<string, AccessorId>>(meshPrimitive.Targets.Count);
+				foreach (Dictionary<string, AccessorId> targetToCopy in meshPrimitive.Targets)
+				{
+					Dictionary<string, AccessorId> target = new Dictionary<string, AccessorId>(targetToCopy.Count);
+					foreach (KeyValuePair<string, AccessorId> targetKeyValuePair in targetToCopy)
+					{
+						target[targetKeyValuePair.Key] = new AccessorId(targetKeyValuePair.Value, gltfRoot);
+					}
+					Targets.Add(target);
+				}
+			}
+		}
+
 		public static int[] GenerateTriangles(int vertCount)
 		{
 			var arr = new int[vertCount];
@@ -58,18 +102,6 @@ namespace GLTF.Schema
 			}
 
 			return arr;
-		}
-
-		public MeshPrimitive Clone()
-		{
-			return new MeshPrimitive
-			{
-				Attributes = Attributes,
-				Indices = Indices,
-				Material = Material,
-				Mode = Mode,
-				Targets = Targets
-			};
 		}
 
 		// Taken from: http://answers.unity3d.com/comments/190515/view.html
@@ -227,7 +259,8 @@ namespace GLTF.Schema
 				{
 					writer.WriteStartObject();
 
-					foreach (var attribute in target) {
+					foreach (var attribute in target)
+					{
 						writer.WritePropertyName(attribute.Key);
 						writer.WriteValue(attribute.Value.Id);
 					}
@@ -270,6 +303,26 @@ namespace GLTF.Schema
 		public static string Color(int index)
 		{
 			return "COLOR_" + index;
+		}
+
+		/// <summary>
+		/// Return the semantic property for the bone weights buffer.
+		/// </summary>
+		/// <param name="index">The index of the bone weights buffer</param>
+		/// <returns>The semantic property for the bone weights buffer</returns>
+		public static string Weight(int index)
+		{
+			return "WEIGHTS_" + index;
+		}
+
+		/// <summary>
+		/// Return the semantic property for the joints buffer.
+		/// </summary>
+		/// <param name="index">The index of the joints buffer</param>
+		/// <returns>The semantic property for the joints buffer</returns>
+		public static string Joint(int index)
+		{
+			return "JOINTS_" + index;
 		}
 
 		/// <summary>

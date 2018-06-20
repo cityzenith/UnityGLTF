@@ -28,6 +28,34 @@ namespace GLTF.Schema
 		/// </summary>
 		public List<NodeId> Joints;
 
+		public Skin()
+		{
+		}
+
+		public Skin(Skin skin, GLTFRoot gltfRoot) : base(skin, gltfRoot)
+		{
+			if (skin == null) return;
+
+			if (skin.InverseBindMatrices != null)
+			{
+				InverseBindMatrices = new AccessorId(skin.InverseBindMatrices, gltfRoot);
+			}
+
+			if (skin.Skeleton != null)
+			{
+				Skeleton = new NodeId(skin.Skeleton, gltfRoot);
+			}
+
+			if (skin.Joints != null)
+			{
+				Joints = new List<NodeId>(skin.Joints.Count);
+				foreach (NodeId joint in skin.Joints)
+				{
+					Joints.Add(new NodeId(joint, gltfRoot));
+				}
+			}
+		}
+
 		public static Skin Deserialize(GLTFRoot root, JsonReader reader)
 		{
 			var skin = new Skin();
@@ -45,7 +73,16 @@ namespace GLTF.Schema
 						skin.Skeleton = NodeId.Deserialize(root, reader);
 						break;
 					case "joints":
-						skin.Joints = reader.ReadList(() => NodeId.Deserialize(root, reader));
+						skin.Joints = new List<NodeId>();
+						List<int> ids = reader.ReadInt32List();
+						for (int i = 0; i < ids.Count; i++)
+						{
+							skin.Joints.Add(new NodeId()
+							{
+								Id = ids[i],
+								Root = root
+							});
+						}
 						break;
 					default:
 						skin.DefaultPropertyDeserializer(root, reader);

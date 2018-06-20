@@ -1,57 +1,85 @@
+using System;
 using System.Collections;
 using System.IO;
+using GLTF;
+using GLTF.Schema;
 using UnityEngine;
+using UnityGLTF.Loader;
 
-namespace UnityGLTF {
+namespace UnityGLTF
+{
 
-	/// <summary>
-	/// Component to load a GLTF scene with
-	/// </summary>
-	class GLTFComponent : MonoBehaviour
-	{
-		public string Url;
-		public bool Multithreaded = true;
-		public bool UseStream = false;
+    /// <summary>
+    /// Component to load a GLTF scene with
+    /// </summary>
+    public class GLTFComponent : MonoBehaviour
+    {
+        public string GLTFUri = null;
+        public bool Multithreaded = true;
+        public bool UseStream = false;
 
-		public int MaximumLod = 300;
+        [SerializeField]
+        private bool loadOnStart = true;
 
-		public Shader GLTFStandard;
-		public Shader GLTFConstant;
+        public int MaximumLod = 300;
+        public GLTFSceneImporter.ColliderType Collider = GLTFSceneImporter.ColliderType.None;
 
-		IEnumerator Start()
-		{
-			GLTFSceneImporter loader = null;
-			FileStream gltfStream = null;
-			if (UseStream)
-			{
-				var fullPath = Application.streamingAssetsPath + Url;
-				gltfStream = File.OpenRead(fullPath);
-				loader = new GLTFSceneImporter(
-					fullPath,
-					gltfStream,
-					gameObject.transform
-					);
-			}
-			else
-			{
-				loader = new GLTFSceneImporter(
-					Url,
-					gameObject.transform
-					);
-			}
+        [SerializeField]
+        private Shader shaderOverride = null;
 
-			loader.SetShaderForMaterialType(GLTFSceneImporter.MaterialType.PbrMetallicRoughness, GLTFStandard);
-			loader.SetShaderForMaterialType(GLTFSceneImporter.MaterialType.CommonConstant, GLTFConstant);
-			loader.MaximumLod = MaximumLod;
-			yield return loader.Load(-1, Multithreaded);
-			if(gltfStream != null)
-			{
-#if WINDOWS_UWP
-				gltfStream.Dispose();
-#else
-				gltfStream.Close();
-#endif
-			}
-		}
-	}
+        IEnumerator Start()
+        {
+            if (loadOnStart)
+            {
+                yield return Load();
+            }
+        }
+
+        public IEnumerator Load()
+        {
+            GLTFSceneImporter sceneImporter = null;
+            ILoader loader = null;
+
+            if (UseStream)
+            {
+                // Path.Combine treats paths that start with the separator character
+                // as absolute paths, ignoring the first path passed in. This removes
+                // that character to properly handle a filename written with it.
+                GLTFUri = GLTFUri.TrimStart(new[] { Path.DirectorySeparatorChar, Path.AltDirectorySeparatorChar });
+                string fullPath = Path.Combine(Application.streamingAssetsPath, GLTFUri);
+                string directoryPath = URIHelper.GetDirectoryName(fullPath);
+                loader = new FileLoader(directoryPath);
+                sceneImporter = new GLTFSceneImporter(
+                    Path.GetFileName(GLTFUri),
+                    loader
+                    );
+            }
+            else
+            {
+                string directoryPath = URIHelper.GetDirectoryName(GLTFUri);
+                loader = new WebRequestLoader(directoryPath);
+                sceneImporter = new GLTFSceneImporter(
+                    URIHelper.GetFileFromUri(new Uri(GLTFUri)),
+                    loader
+                    );
+
+            }
+
+            sceneImporter.SceneParent = gameObject.transform;
+            sceneImporter.Collider = Collider;
+            sceneImporter.MaximumLod = MaximumLod;
+            sceneImporter.CustomShaderName = shaderOverride ? shaderOverride.name : null;
+            yield return sceneImporter.LoadScene(-1, Multithreaded);
+
+            // Override the shaders on all materials if a shader is provided
+            if (shaderOverride != null)
+            {
+                Renderer[] renderers = gameObject.GetComponentsInChildren<Renderer>();
+                foreach (Renderer renderer in renderers)
+                {
+                    renderer.sharedMaterial.shader = shaderOverride;
+                }
+            }
+        }
+    }
 }

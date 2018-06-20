@@ -5,6 +5,8 @@ namespace GLTF.Schema
 {
 	public class OcclusionTextureInfo : TextureInfo
 	{
+		public const string STRENGTH = "strength";
+
 		/// <summary>
 		/// A scalar multiplier controlling the amount of occlusion applied.
 		/// A value of 0.0 means no occlusion.
@@ -15,6 +17,15 @@ namespace GLTF.Schema
 		/// <maximum>1.0</maximum>
 		/// </summary>
 		public double Strength = 1.0f;
+
+		public OcclusionTextureInfo()
+		{
+		}
+
+		public OcclusionTextureInfo(OcclusionTextureInfo occulisionTextureInfo, GLTFRoot gltfRoot) : base(occulisionTextureInfo, gltfRoot)
+		{
+			Strength = occulisionTextureInfo.Strength;
+		}
 
 		public static new OcclusionTextureInfo Deserialize(GLTFRoot root, JsonReader reader)
 		{
@@ -31,13 +42,13 @@ namespace GLTF.Schema
 
 				switch (curProp)
 				{
-					case "index":
+					case INDEX:
 						textureInfo.Index = TextureId.Deserialize(root, reader);
 						break;
-					case "texCoord":
+					case TEXCOORD:
 						textureInfo.TexCoord = reader.ReadAsInt32().Value;
 						break;
-					case "strength":
+					case STRENGTH:
 						textureInfo.Strength = reader.ReadAsDouble().Value;
 						break;
 					default:
@@ -49,7 +60,8 @@ namespace GLTF.Schema
 			return textureInfo;
 		}
 
-		public override void Serialize(JsonWriter writer) {
+		public override void Serialize(JsonWriter writer)
+		{
 			writer.WriteStartObject();
 
 			if (Strength != 1.0f)

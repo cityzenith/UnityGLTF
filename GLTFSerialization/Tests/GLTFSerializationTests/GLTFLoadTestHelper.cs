@@ -5,9 +5,17 @@ using Newtonsoft.Json.Linq;
 
 namespace GLTFSerializationTests
 {
-	public class TestExtension : Extension
+	public class TestExtension : IExtension
 	{
 		public float Glossiness { get; set; }
+
+		public IExtension Clone(GLTFRoot root)
+		{
+			return new TestExtension()
+			{
+				Glossiness = Glossiness
+			};
+		}
 
 		public JProperty Serialize()
 		{
@@ -26,7 +34,7 @@ namespace GLTFSerializationTests
 		}
 
 
-		public override Extension Deserialize(GLTFRoot root, JProperty extensionToken)
+		public override IExtension Deserialize(GLTFRoot root, JProperty extensionToken)
 		{
 			Assert.IsNotNull(extensionToken.Value["glossiness"]);
 			float glossiness = (float)extensionToken.Value["glossiness"];
@@ -265,11 +273,8 @@ namespace GLTFSerializationTests
 		{
 			Assert.IsNotNull(gltfRoot.Extras);
 
-			JProperty extras = gltfRoot.Extras as JProperty;
-			Assert.AreEqual(JTokenType.Object, extras.Value.Type);
-
-			JObject jObject = extras.Value as JObject;
-			JToken testIntProperty = (extras.Value as JObject)["testint"];
+			JObject jObject = gltfRoot.Extras as JObject;
+			JToken testIntProperty = jObject["testint"];
 			Assert.AreEqual(JTokenType.Integer, testIntProperty.Type);
 			Assert.AreEqual(254, testIntProperty.Value<int>());
 
