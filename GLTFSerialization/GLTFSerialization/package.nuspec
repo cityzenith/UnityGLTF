@@ -1,32 +1,19 @@
 <?xml version="1.0"?>
 <package>
   <metadata>
-    <!--*-->
-    <id>$id$</id>
-    <!--*-->
-    <version>1.0.0.0</version>
-    <title>
-    </title>
-    <!--*-->
-    <authors>$author$</authors>
-    <owners>$author$</owners>
-    <!--
-    <licenseUrl></licenseUrl>
-    <projectUrl></projectUrl>
-    <iconUrl></iconUrl>
--->
+    <id>GLTFSerialization</id>
+    <version>1.5.0</version>
+    <authors>Cityzenith</authors>
+    <owners>Kronos Group And Cityzenith</owners>
     <requireLicenseAcceptance>false</requireLicenseAcceptance>
-    <!--*-->
-    <description>$description$</description>
-    <!--*-->
-    <releaseNotes>Initial&amp;#x0020;Version</releaseNotes>
-    <copyright>$copyright$</copyright>
-    <tags>
-    </tags>
+    <description>GLTF Serialization library</description>
+    <releaseNotes>Change of Json serialization and Update</releaseNotes>
+    <copyright>Copyright 2018</copyright>
+    <tags>Unity</tags>
     <dependencies>
-   <group targetFramework="net35">
-      <dependency id="Newtonsoft.Json" version="10.0.3" />
-   </group>
-</dependencies>
+      <group targetFramework="net35">
+        <dependency id="JsonForUnity" version="1.0.0" />
+      </group>
+    </dependencies>
   </metadata>
 </package>
