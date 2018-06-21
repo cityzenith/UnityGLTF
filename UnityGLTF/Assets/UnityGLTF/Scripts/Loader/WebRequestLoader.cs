@@ -18,10 +18,12 @@ namespace UnityGLTF.Loader
 		public Stream LoadedStream { get; private set; }
 
 		private string _rootURI;
+		private string _URIQuery;
 
-		public WebRequestLoader(string rootURI)
+		public WebRequestLoader(string rootURI, string URIQuery = "")
 		{
 			_rootURI = rootURI;
+			_URIQuery = URIQuery;
 		}
 
 		public IEnumerator LoadStream(string gltfFilePath)
@@ -36,7 +38,7 @@ namespace UnityGLTF.Loader
 
 		private IEnumerator CreateHTTPRequest(string rootUri, string httpRequestPath)
 		{
-			UnityWebRequest www = new UnityWebRequest(Path.Combine(rootUri, httpRequestPath), "GET", new DownloadHandlerBuffer(), null);
+			UnityWebRequest www = new UnityWebRequest(Path.Combine(rootUri, httpRequestPath) + _URIQuery, "GET", new DownloadHandlerBuffer(), null);
 			www.timeout = 5000;
 			yield return www.SendWebRequest();
 

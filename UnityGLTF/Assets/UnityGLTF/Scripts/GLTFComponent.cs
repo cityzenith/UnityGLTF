@@ -57,15 +57,17 @@ namespace UnityGLTF
             else
             {
                 string directoryPath = URIHelper.GetDirectoryName(GLTFUri);
-                loader = new WebRequestLoader(directoryPath);
+				Uri uri = new Uri(GLTFUri);
+				string query = uri.Query;
+				loader = new WebRequestLoader(directoryPath, string.IsNullOrEmpty(query) ? "" : query);
                 sceneImporter = new GLTFSceneImporter(
-                    URIHelper.GetFileFromUri(new Uri(GLTFUri)),
+					URIHelper.GetFileFromUri(uri),
                     loader
                     );
 
             }
 
-            sceneImporter.SceneParent = gameObject.transform;
+			sceneImporter.SceneParent = gameObject.transform;
             sceneImporter.Collider = Collider;
             sceneImporter.MaximumLod = MaximumLod;
             sceneImporter.CustomShaderName = shaderOverride ? shaderOverride.name : null;

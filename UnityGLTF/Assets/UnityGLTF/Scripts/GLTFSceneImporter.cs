@@ -782,7 +782,9 @@ namespace UnityGLTF
         {
             var sceneObj = new GameObject(string.IsNullOrEmpty(scene.Name) ? ("GLTFScene") : scene.Name);
 
-            Transform[] nodeTransforms = new Transform[scene.Nodes.Count];
+			sceneObj.SetActive(false);
+
+			Transform[] nodeTransforms = new Transform[scene.Nodes.Count];
             for (int i = 0; i < scene.Nodes.Count; ++i)
             {
                 NodeId node = scene.Nodes[i];
@@ -810,7 +812,8 @@ namespace UnityGLTF
                 }
             }
 
-            CreatedObject = sceneObj;
+			sceneObj.SetActive(true);
+			CreatedObject = sceneObj;
             InitializeGltfTopLevelObject();
         }
 

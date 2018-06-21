@@ -2,7 +2,7 @@
 <package>
   <metadata>
     <id>GLTFUnityLib.Editor</id>
-    <version>1.0.1</version>
+    <version>1.0.5</version>
     <title>GLTFUnityLib.Editor</title>
     <authors>Daniel Mosquera</authors>
     <owners>Cityzenith, LLC</owners>
@@ -14,7 +14,7 @@
     </tags>
     <dependencies>
       <group targetFramework="net35">
-        <dependency id="GLTFUnityLib" version="2.6.2" />
+        <dependency id="GLTFUnityLib" version="2.6.6" />
         <dependency id="UnityEditor.dll" version="1.1.0" />
       </group>
     </dependencies>
