@@ -17,13 +17,15 @@ namespace UnityGLTF.Loader
 	{
 		public Stream LoadedStream { get; private set; }
 
+		public bool HasSyncLoadMethod { get; private set; }
+
 		private string _rootURI;
 		private string _URIQuery;
 
 		public WebRequestLoader(string rootURI, string URIQuery = "")
 		{
 			_rootURI = rootURI;
-			_URIQuery = URIQuery;
+			HasSyncLoadMethod = false;
 		}
 
 		public IEnumerator LoadStream(string gltfFilePath)
@@ -34,6 +36,11 @@ namespace UnityGLTF.Loader
 			}
 
 			yield return CreateHTTPRequest(_rootURI, gltfFilePath);
+		}
+
+		public void LoadStreamSync(string jsonFilePath)
+		{
+			throw new NotImplementedException();
 		}
 
 		private IEnumerator CreateHTTPRequest(string rootUri, string httpRequestPath)

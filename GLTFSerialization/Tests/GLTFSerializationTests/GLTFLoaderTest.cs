@@ -1,10 +1,8 @@
-﻿using Microsoft.VisualStudio.TestTools.UnitTesting;
-using System.Threading.Tasks;
-using System.IO;
-using GLTF;
-using GLTF.Schema;
+﻿using GLTF;
 using GLTF.Math;
-using System.Collections.Generic;
+using GLTF.Schema;
+using Microsoft.VisualStudio.TestTools.UnitTesting;
+using System.IO;
 
 namespace GLTFSerializationTests
 {
@@ -20,11 +18,12 @@ namespace GLTFSerializationTests
 		[TestMethod]
 		public void LoadGLTFFromStream()
 		{
-			Assert.IsTrue(File.Exists(GLTF_PATH));
-			FileStream gltfStream = File.OpenRead(GLTF_PATH);
+			Assert.IsTrue(File.Exists(TestAssetPaths.GLTF_PATH));
+			FileStream gltfStream = File.OpenRead(TestAssetPaths.GLTF_PATH);
 
 			GLTFRoot.RegisterExtension(new TestExtensionFactory());
-			GLTFRoot gltfRoot = GLTFParser.ParseJson(gltfStream);
+			GLTFRoot gltfRoot = null;
+			GLTFParser.ParseJson(gltfStream, out gltfRoot);
 			GLTFJsonLoadTestHelper.TestGLTF(gltfRoot);
 		}
 
@@ -33,15 +32,16 @@ namespace GLTFSerializationTests
 		{
 			Assert.IsTrue(File.Exists(GLTF_PBR_SPECGLOSS_PATH));
 			FileStream gltfStream = File.OpenRead(GLTF_PBR_SPECGLOSS_PATH);
-			
-			GLTFRoot gltfRoot = GLTFParser.ParseJson(gltfStream);
+
+			GLTFRoot gltfRoot;
+			GLTFParser.ParseJson(gltfStream, out gltfRoot);
 
 			Assert.IsNotNull(gltfRoot.ExtensionsUsed);
 			Assert.IsTrue(gltfRoot.ExtensionsUsed.Contains(KHR_materials_pbrSpecularGlossinessExtensionFactory.EXTENSION_NAME));
 
 			Assert.IsNotNull(gltfRoot.Materials);
 			Assert.AreEqual(1, gltfRoot.Materials.Count);
-			Material materialDef = gltfRoot.Materials[0];
+			GLTFMaterial materialDef = gltfRoot.Materials[0];
 			KHR_materials_pbrSpecularGlossinessExtension specGloss = materialDef.Extensions[KHR_materials_pbrSpecularGlossinessExtensionFactory.EXTENSION_NAME] as KHR_materials_pbrSpecularGlossinessExtension;
 			Assert.IsTrue(specGloss != null);
 
@@ -57,7 +57,8 @@ namespace GLTFSerializationTests
 		{
 			Assert.IsTrue(File.Exists(GLB_PATH));
 			FileStream gltfStream = File.OpenRead(GLB_PATH);
-			GLTFRoot gltfRoot = GLTFParser.ParseJson(gltfStream);
+			GLTFRoot gltfRoot;
+			GLTFParser.ParseJson(gltfStream, out gltfRoot);
 			GLTFJsonLoadTestHelper.TestGLB(gltfRoot);
 		}
 	}

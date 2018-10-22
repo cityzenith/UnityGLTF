@@ -5,7 +5,8 @@ using UnityGLTF.Loader;
 
 namespace UnityGLTF.Tests.Integration
 {
-	public class GLTFTestComponent : MonoBehaviour
+#if UNITY_5
+    public class GLTFTestComponent : MonoBehaviour
 	{
 		public string Url;
 		public bool Multithreaded = true;
@@ -20,8 +21,10 @@ namespace UnityGLTF.Tests.Integration
 				);
 
 			sceneImporter.SceneParent = gameObject.transform;
-			yield return sceneImporter.LoadScene(-1, Multithreaded);
+			sceneImporter.isMultithreaded = Multithreaded;
+			yield return sceneImporter.LoadScene(-1);
 			IntegrationTest.Pass();
 		}
 	}
+#endif
 }

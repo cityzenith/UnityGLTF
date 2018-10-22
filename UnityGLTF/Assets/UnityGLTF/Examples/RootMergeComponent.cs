@@ -28,11 +28,13 @@ namespace UnityGLTF
 
 			yield return loader0.LoadStream(Path.GetFileName(asset0Path));
 			var asset0Stream = loader0.LoadedStream;
-			var asset0Root = GLTFParser.ParseJson(asset0Stream);
+			GLTFRoot asset0Root;
+			GLTFParser.ParseJson(asset0Stream, out asset0Root);
 
 			yield return loader1.LoadStream(Path.GetFileName(asset1Path));
 			var asset1Stream = loader1.LoadedStream;
-			var asset1Root = GLTFParser.ParseJson(asset1Stream);
+			GLTFRoot asset1Root;
+			GLTFParser.ParseJson(asset1Stream, out asset1Root);
 
 			string newPath = "../../" + URIHelper.GetDirectoryName(asset0Path);
 
@@ -43,7 +45,7 @@ namespace UnityGLTF
 
 			for (int i = previousBufferCount; i < asset1Root.Buffers.Count; ++i)
 			{
-				GLTF.Schema.Buffer buffer = asset1Root.Buffers[i];
+				GLTF.Schema.GLTFBuffer buffer = asset1Root.Buffers[i];
 				if (!URIHelper.IsBase64Uri(buffer.Uri))
 				{
 					buffer.Uri = newPath + buffer.Uri;
@@ -52,7 +54,7 @@ namespace UnityGLTF
 
 			for (int i = previousImageCount; i < asset1Root.Images.Count; ++i)
 			{
-				Image image = asset1Root.Images[i];
+				GLTFImage image = asset1Root.Images[i];
 				if (!URIHelper.IsBase64Uri(image.Uri))
 				{
 					image.Uri = newPath + image.Uri;
@@ -70,8 +72,8 @@ namespace UnityGLTF
 				);
 
 			importer.MaximumLod = MaximumLod;
-
-			yield return importer.LoadScene(-1, Multithreaded);
+			importer.isMultithreaded = Multithreaded;
+			yield return importer.LoadScene(-1);
 		}
 #endif
 	}
