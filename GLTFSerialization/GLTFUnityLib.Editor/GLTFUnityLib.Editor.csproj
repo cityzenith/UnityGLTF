@@ -30,11 +30,8 @@
     <WarningLevel>4</WarningLevel>
   </PropertyGroup>
   <ItemGroup>
-    <Reference Include="GLTFSerialization, Version=1.5.0.0, Culture=neutral, processorArchitecture=MSIL">
-      <HintPath>..\packages\GLTFSerialization.1.5.0\lib\net35\GLTFSerialization.dll</HintPath>
-    </Reference>
-    <Reference Include="GLTFUnityLib, Version=2.6.6.0, Culture=neutral, processorArchitecture=MSIL">
-      <HintPath>..\packages\GLTFUnityLib.2.6.6\lib\net35\GLTFUnityLib.dll</HintPath>
+    <Reference Include="GLTFSerialization, Version=1.6.0.0, Culture=neutral, processorArchitecture=MSIL">
+      <HintPath>..\packages\GLTFSerialization.1.6.0\lib\net35\GLTFSerialization.dll</HintPath>
     </Reference>
     <Reference Include="Newtonsoft.Json, Version=8.0.0.0, Culture=neutral, processorArchitecture=MSIL">
       <HintPath>..\packages\JsonForUnity.1.0.0\lib\net35\Newtonsoft.Json.dll</HintPath>
@@ -75,6 +72,12 @@
       <SubType>Designer</SubType>
     </None>
     <None Include="packages.config" />
+  </ItemGroup>
+  <ItemGroup>
+    <ProjectReference Include="..\GLTFUnityLib\GLTFUnityLib.csproj">
+      <Project>{e72c79ca-a50d-4fd4-bff4-f3a71fcda226}</Project>
+      <Name>GLTFUnityLib</Name>
+    </ProjectReference>
   </ItemGroup>
   <Import Project="$(MSBuildToolsPath)\Microsoft.CSharp.targets" />
 </Project>

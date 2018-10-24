@@ -6,7 +6,7 @@ using GLTF.Schema;
 using UnityEngine;
 using UnityEngine.Rendering;
 using UnityGLTF.Extensions;
-using CameraType = GLTF.Schema.CameraType;
+using GLTFCameraType = GLTF.Schema.CameraType;
 using WrapMode = GLTF.Schema.WrapMode;
 
 namespace UnityGLTF
@@ -481,7 +481,7 @@ namespace UnityGLTF
 
 			//type
 			bool isOrthographic = unityCamera.orthographic;
-			camera.Type = isOrthographic ? CameraType.orthographic : CameraType.perspective;
+			camera.Type = isOrthographic ? GLTFCameraType.orthographic : GLTFCameraType.perspective;
 			Matrix4x4 matrix = unityCamera.projectionMatrix;
 
 			//matrix properties: compute the fields from the projection matrix
