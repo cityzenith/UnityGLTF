@@ -1974,9 +1974,14 @@ namespace UnityGLTF
 					}
 				}
 
-				if (source.filterMode == desiredFilterMode && source.wrapMode == desiredWrapMode)
+				if (markGpuOnly || (source.filterMode == desiredFilterMode && source.wrapMode == desiredWrapMode))
 				{
 					_assetCache.TextureCache[textureIndex].Texture = source;
+
+                    if (markGpuOnly)
+                    {
+                        Debug.LogWarning("Ignoring sampler");
+                    }
 				}
 				else
 				{
