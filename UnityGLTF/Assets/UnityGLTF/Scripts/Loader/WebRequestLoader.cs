@@ -31,6 +31,7 @@ namespace UnityGLTF.Loader
 		public WebRequestLoader(string rootURI, string URIQuery = "")
 		{
 			_rootURI = rootURI;
+			_URIQuery = URIQuery;
 			HasSyncLoadMethod = false;
 		}
 
