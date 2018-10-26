@@ -6,6 +6,7 @@ using UnityEngine;
 using System.Text.RegularExpressions;
 using System.Net;
 using UnityEngine.Networking;
+using System.Threading;
 
 #if WINDOWS_UWP
 using System.Threading.Tasks;
@@ -18,6 +19,11 @@ namespace UnityGLTF.Loader
 		public Stream LoadedStream { get; private set; }
 
 		public bool HasSyncLoadMethod { get; private set; }
+
+		/// <summary>
+		/// To saved downloads to local storage
+		/// </summary>
+		public string LocalStoragePath { get; set; }
 
 		private string _rootURI;
 		private string _URIQuery;
@@ -60,7 +66,14 @@ namespace UnityGLTF.Loader
 				throw new Exception("Stream is larger than can be copied into byte array");
 			}
 
-			LoadedStream = new MemoryStream(www.downloadHandler.data, 0, www.downloadHandler.data.Length, true, true);
+			byte[] data = www.downloadHandler.data;
+
+			LoadedStream = new MemoryStream(data, 0, www.downloadHandler.data.Length, true, true);
+
+			if (!string.IsNullOrEmpty(LocalStoragePath))
+			{
+				ThreadPool.QueueUserWorkItem((o) => File.WriteAllBytes(Path.Combine(LocalStoragePath, httpRequestPath), data));
+			}
 		}
 	}
 }

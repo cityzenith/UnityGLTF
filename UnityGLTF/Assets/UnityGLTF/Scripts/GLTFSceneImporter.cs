@@ -53,7 +53,10 @@ namespace UnityGLTF
 		/// </summary>
 		public int ObjectsPerFrame { get; set; }
 
-		public bool UseNumberedMethod { get; set; }
+		/// <summary>
+		/// To use a number of noders per frame instead of just one
+		/// </summary>
+		public bool UseNumberedMethod;
 
 		/// <summary>
 		/// Timeout for certain threading operations
@@ -127,8 +130,6 @@ namespace UnityGLTF
 
 			if (ObjectsPerFrame < DefaultNumberofObjectsPerFrame)
 				ObjectsPerFrame = DefaultNumberofObjectsPerFrame;
-
-			UseNumberedMethod = true;
 		}
 
 		public void Dispose()
@@ -387,7 +388,7 @@ namespace UnityGLTF
 		/// </summary>
 		/// <param name="sceneIndex">The bufferIndex of scene in gltf file to load</param>
 		/// <returns></returns>
-		protected IEnumerator _LoadScene(int sceneIndex = -1)
+		protected virtual IEnumerator _LoadScene(int sceneIndex = -1)
 		{
 			GLTFScene scene;
 			InitializeAssetCache(); // asset cache currently needs initialized every time due to cleanup logic
@@ -438,10 +439,10 @@ namespace UnityGLTF
 
 			yield return ConstructScene(scene);
 
-			if (SceneParent != null)
+			/*if (SceneParent != null)
 			{
 				CreatedObject.transform.SetParent(SceneParent, false);
-			}
+			}*/
 
 			_lastLoadedScene = CreatedObject;
 		}
@@ -950,6 +951,11 @@ namespace UnityGLTF
 		{
 			var sceneObj = new GameObject(string.IsNullOrEmpty(scene.Name) ? ("GLTFScene") : scene.Name);
 
+			if (SceneParent != null)
+			{
+				sceneObj.transform.SetParent(SceneParent, false);
+			}
+
 			Transform[] nodeTransforms = new Transform[scene.Nodes.Count];
 			for (int i = 0; i < scene.Nodes.Count; ++i)
 			{
@@ -957,19 +963,13 @@ namespace UnityGLTF
 
 				if (UseNumberedMethod)
 				{
-					ConstructNodeNoCoroutine(node.Value, node.Id);
-
-					if (objectCounter >= ObjectsPerFrame)
-					{
-						objectCounter = 0;
-						yield return null;
-					}
+					yield return ConstructNodeInBatch(node.Value, node.Id, sceneObj.transform);
 				}
 				else
-					yield return ConstructNode(node.Value, node.Id);
+					yield return ConstructNode(node.Value, node.Id, sceneObj.transform);
 
 				GameObject nodeObj = _assetCache.NodeCache[node.Id];
-				nodeObj.transform.SetParent(sceneObj.transform, false);
+				//nodeObj.transform.SetParent(sceneObj.transform, false);
 				nodeTransforms[i] = nodeObj.transform;
 			}
 
@@ -995,14 +995,20 @@ namespace UnityGLTF
 			InitializeGltfTopLevelObject();
 		}
 
-		protected virtual void ConstructNodeNoCoroutine(Node node, int nodeIndex)
+		protected virtual IEnumerator ConstructNodeInBatch(Node node, int nodeIndex, Transform parent = null)
 		{
 			if (_assetCache.NodeCache[nodeIndex] != null)
 			{
-				return;
+				yield break;
 			}
 
 			objectCounter++;
+
+			if (objectCounter >= ObjectsPerFrame)
+			{
+				objectCounter = 0;
+				yield return null;
+			}
 
 			var nodeObj = new GameObject(string.IsNullOrEmpty(node.Name) ? ("GLTFNode" + nodeIndex) : node.Name);
 			// If we're creating a really large node, we need it to not be visible in partial stages. So we hide it while we create it
@@ -1015,6 +1021,9 @@ namespace UnityGLTF
 			nodeObj.transform.localPosition = position;
 			nodeObj.transform.localRotation = rotation;
 			nodeObj.transform.localScale = scale;
+
+			if(null != parent)
+				nodeObj.transform.SetParent(parent, false);
 
 			if (node.Mesh != null)
 			{
@@ -1033,9 +1042,9 @@ namespace UnityGLTF
 				foreach (var child in node.Children)
 				{
 					// todo blgross: replace with an iterartive solution
-					ConstructNodeNoCoroutine(child.Value, child.Id);
+					yield return ConstructNodeInBatch(child.Value, child.Id, nodeObj.transform);
 					GameObject childObj = _assetCache.NodeCache[child.Id];
-					childObj.transform.SetParent(nodeObj.transform, false);
+					//childObj.transform.SetParent(nodeObj.transform, false);
 				}
 			}
 
@@ -1044,7 +1053,7 @@ namespace UnityGLTF
 		}
 
 
-		protected virtual IEnumerator ConstructNode(Node node, int nodeIndex)
+		protected virtual IEnumerator ConstructNode(Node node, int nodeIndex, Transform parent = null)
 		{
 			if (_assetCache.NodeCache[nodeIndex] != null)
 			{
@@ -1063,6 +1072,9 @@ namespace UnityGLTF
 			nodeObj.transform.localRotation = rotation;
 			nodeObj.transform.localScale = scale;
 
+			if (null != parent)
+				nodeObj.transform.SetParent(parent, false);
+
 			if (node.Mesh != null)
 			{
 				yield return ConstructMesh(node.Mesh.Value, nodeObj.transform, node.Mesh.Id, node.Skin != null ? node.Skin.Value : null);
@@ -1080,9 +1092,9 @@ namespace UnityGLTF
 				foreach (var child in node.Children)
 				{
 					// todo blgross: replace with an iterartive solution
-					yield return ConstructNode(child.Value, child.Id);
+					yield return ConstructNode(child.Value, child.Id, nodeObj.transform);
 					GameObject childObj = _assetCache.NodeCache[child.Id];
-					childObj.transform.SetParent(nodeObj.transform, false);
+					//childObj.transform.SetParent(nodeObj.transform, false);
 				}
 			}
 
@@ -1162,7 +1174,7 @@ namespace UnityGLTF
 			{
 				if (_assetCache.NodeCache[skin.Joints[i].Id] == null)
 				{
-					ConstructNodeNoCoroutine(_gltfRoot.Nodes[skin.Joints[i].Id], skin.Joints[i].Id);
+					ConstructNodeInBatch(_gltfRoot.Nodes[skin.Joints[i].Id], skin.Joints[i].Id);
 				}
 
 				bones[i] = _assetCache.NodeCache[skin.Joints[i].Id].transform;

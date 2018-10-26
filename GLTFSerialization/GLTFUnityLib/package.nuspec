@@ -2,19 +2,19 @@
 <package>
   <metadata>
     <id>GLTFUnityLib</id>
-    <version>2.7.1</version>
+    <version>2.8.1</version>
     <title>GLTFUnityLib</title>
     <authors>Daniel Mosquera</authors>
     <owners>Cityzenith, LLC</owners>
     <requireLicenseAcceptance>false</requireLicenseAcceptance>
     <description>Nugetized GLTF Library</description>
-    <releaseNotes>Added Objcts per coroutine</releaseNotes>
+    <releaseNotes>Added support to extend importer and local storage copy from downloads</releaseNotes>
     <copyright>Cityzenith LLC 2018</copyright>
     <tags>
     </tags>
     <dependencies>
       <group targetFramework="net35">
-        <dependency id="GLTFSerialization" version="1.5.0" />
+        <dependency id="GLTFSerialization" version="1.7.0" />
         <dependency id="JsonForUnity" version="1.0.0" />
         <dependency id="UnityEngine.dll" version="1.1.0" />
       </group>
