@@ -94,6 +94,7 @@ namespace UnityGLTF
 			public long StartPosition;
 		}
 
+		protected Action<GameObject> onObjectCreated;
 		protected GameObject _lastLoadedScene;
 		protected readonly GLTFMaterial DefaultMaterial = new GLTFMaterial();
 		protected MaterialCacheData _defaultLoadedMaterial = null;
@@ -130,6 +131,11 @@ namespace UnityGLTF
 
 			if (ObjectsPerFrame < DefaultNumberofObjectsPerFrame)
 				ObjectsPerFrame = DefaultNumberofObjectsPerFrame;
+		}
+
+		public void SetOnObjectCreatedCallback(Action<GameObject> callback)
+		{
+			onObjectCreated = callback;
 		}
 
 		public void Dispose()
@@ -1036,6 +1042,9 @@ namespace UnityGLTF
 				cameraObj.transform.parent = nodeObj.transform;
 			}
 			*/
+
+			if (null != onObjectCreated)
+				onObjectCreated.Invoke(nodeObj);
 
 			if (node.Children != null)
 			{
